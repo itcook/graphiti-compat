@@ -1,0 +1,65 @@
+networks:
+  graphiti-compat-mcp_network:
+
+services:
+  neo4j:
+    image: neo4j:2025.06.2
+    ports:
+      - '7474:7474' # HTTP
+      - '7687:7687' # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/graphiti
+      - NEO4J_server_memory_heap_initial__size=512m
+      - NEO4J_server_memory_heap_max__size=1G
+      - NEO4J_server_memory_pagecache_size=512m
+    volumes:
+      - neo4j_compat_data:/data
+      - neo4j_compat_logs:/logs
+    healthcheck:
+      test: ['CMD', 'wget', '-O', '/dev/null', 'http://localhost:7474']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - graphiti-compat-mcp_network
+
+  # 修改服务名
+  graphiti-mcp-openai-compat:
+    # 修改构建配置
+    build:
+      context: ../ # 指向项目根目录以包含 graphiti_core
+      dockerfile: mcp_server/openai_compat.Dockerfile
+    env_file:
+      - path: .env
+        required: false # Makes the file optional. Default value is 'true'
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    # 修改环境变量（分离 LLM 和 Embedding 配置）
+    environment:
+      - NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
+      - NEO4J_USER=${NEO4J_USER:-neo4j}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-graphiti}
+      # 原: OPENAI_API_KEY, MODEL_NAME, EMBEDDER_MODEL_NAME
+      # 新: 分离的配置
+      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME}
+      - LLM_SMALL_MODEL_NAME=${LLM_SMALL_MODEL_NAME:-}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.0}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-} # 可选
+      - EMBEDDING_MODEL_NAME=${EMBEDDING_MODEL_NAME}
+      - PATH=/root/.local/bin:${PATH}
+      - SEMAPHORE_LIMIT=${SEMAPHORE_LIMIT:-10}
+    networks:
+      - graphiti-compat-mcp_network
+    ports:
+      - '8000:8000' # Expose the MCP server via HTTP for SSE transport
+    # 修改启动命令
+    command: ['uv', 'run', 'graphiti_mcp_server-openai_compat.py', '--transport', 'sse']
+
+volumes:
+  neo4j_compat_data:
+  neo4j_compat_logs:

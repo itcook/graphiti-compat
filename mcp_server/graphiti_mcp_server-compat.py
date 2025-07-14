@@ -1095,8 +1095,8 @@ async def initialize_server() -> MCPConfig:
     # Log entity extraction configuration
     if config.use_custom_entities:
         logger.info('✅ Entity extraction enabled using predefined ENTITY_TYPES')
-    else:
-        logger.info('⚠️ Entity extraction disabled (no custom entities will be used)')
+    # else:
+    #     logger.info('⚠️ Entity extraction disabled (no custom entities will be used)')
 
     # Initialize Graphiti
     await initialize_graphiti()

@@ -24,6 +24,22 @@ get_env_var() {
     echo "$value"
 }
 
+# Function to mask sensitive values (API keys)
+mask_sensitive_value() {
+    local value="$1"
+    local length=${#value}
+
+    if [ $length -le 7 ]; then
+        # If too short, just show asterisks
+        echo "****"
+    else
+        # Show first 3 and last 4 characters
+        local prefix="${value:0:3}"
+        local suffix="${value: -4}"
+        echo "${prefix}****${suffix}"
+    fi
+}
+
 # Check required environment variables
 check_env_var() {
     local var_name="$1"
@@ -34,7 +50,13 @@ check_env_var() {
         exit 1
     fi
 
-    echo "✅ $var_name: $value"
+    # Mask API keys for security
+    if [[ "$var_name" == *"API_KEY"* ]]; then
+        local masked_value=$(mask_sensitive_value "$value")
+        echo "✅ $var_name: $masked_value"
+    else
+        echo "✅ $var_name: $value"
+    fi
 }
 
 echo "⏳ Checking environment variables..."
@@ -58,8 +80,14 @@ echo "✅ All required environment variables are set"
 echo "🚀 Starting Graphiti MCP OpenAI Compatible version..."
 docker compose -f docker-compose_compat.yml up -d
 
+# Get PORT environment variable for display
+PORT_VALUE=$(get_env_var "PORT")
+if [ -z "$PORT_VALUE" ]; then
+    PORT_VALUE="8000"
+fi
+
 echo "✅ Services started successfully!"
-echo "✨ MCP Server: http://localhost:8000"
+echo "✨ MCP Server: http://localhost:${PORT_VALUE}"
 echo "✨ Neo4j Browser: http://localhost:7474"
 echo "✨ Use 'docker compose -f docker-compose_compat.yml logs -f' to view logs"
-echo "✨ Use 'docker compose down' to stop services"
+echo "🟥 Use 'docker compose -f docker-compose_compat.yml down' to stop services"

@@ -27,7 +27,7 @@ class OpenAICompatRerankerClient(CrossEncoderClient):
             config (LLMConfig | None): LLM configuration. If None, creates from environment variables.
         """
         if config is None:
-            # 使用兼容版本的环境变量
+            # Use environment variables with the compatible version
             config = LLMConfig(
                 api_key=os.environ.get('LLM_API_KEY'),
                 base_url=os.environ.get('LLM_BASE_URL'),
@@ -41,7 +41,7 @@ class OpenAICompatRerankerClient(CrossEncoderClient):
         )
 
     async def rank(self, query: str, passages: list[str]) -> list[tuple[str, float]]:
-        # 与原版本相同的实现逻辑
+        # Same implementation logic as the original version
         openai_messages_list: Any = [
             [
                 Message(

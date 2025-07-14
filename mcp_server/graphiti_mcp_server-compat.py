@@ -12,7 +12,6 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any, TypedDict, cast
 
-# 移除 Azure 相关导入
 # from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 # from openai import AsyncAzureOpenAI
 # from graphiti_core.embedder.azure_openai import AzureOpenAIEmbedderClient
@@ -28,7 +27,6 @@ from graphiti_core.embedder.client import EmbedderClient
 from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
 from graphiti_core.llm_client import LLMClient
 from graphiti_core.llm_client.config import LLMConfig
-# 新增兼容客户端导入
 from graphiti_core.llm_client.openai_compat_client import OpenAICompatClient
 from graphiti_core.cross_encoder.openai_compat_reranker_client import OpenAICompatRerankerClient
 from graphiti_core.nodes import EpisodeType, EpisodicNode
@@ -183,15 +181,10 @@ class GraphitiLLMConfig(BaseModel):
     """
 
     api_key: str | None = None
-    base_url: str | None = None  # 新增 base_url 支持
-    model: str  # 必须配置，无默认值
-    small_model: str | None = None  # 可选配置
+    base_url: str | None = None  # Added support for base_url
+    model: str  # Must be configured, no default value
+    small_model: str | None = None  # Optional configuration
     temperature: float = 0.0
-    # 移除 Azure 相关字段
-    # azure_openai_endpoint: str | None = None
-    # azure_openai_deployment_name: str | None = None
-    # azure_openai_api_version: str | None = None
-    # azure_openai_use_managed_identity: bool = False
 
     @classmethod
     def from_env(cls) -> 'GraphitiLLMConfig':
@@ -210,11 +203,6 @@ class GraphitiLLMConfig(BaseModel):
             raise ValueError('LLM_MODEL_NAME environment variable must be set')
 
         small_model = os.environ.get('LLM_SMALL_MODEL_NAME')
-        # small_model 是可选的，可以为空
-
-        logger.info(f'LLM configuration loaded: model={model}, base_url={base_url}')
-        if small_model:
-            logger.info(f'Small model configured: {small_model}')
 
         return cls(
             api_key=api_key,
@@ -236,13 +224,13 @@ class GraphitiLLMConfig(BaseModel):
             if args.model.strip():
                 config.model = args.model
             else:
-                logger.warning('Empty model name provided via CLI, keeping environment configuration')
+                logger.warning('⚠️ Empty model name provided via CLI, keeping environment configuration')
 
         if hasattr(args, 'small_model') and args.small_model:
             if args.small_model.strip():
                 config.small_model = args.small_model
             else:
-                logger.warning('Empty small_model name provided via CLI, keeping environment configuration')
+                logger.warning('⚠️ Empty small_model name provided via CLI, keeping environment configuration')
 
         if hasattr(args, 'temperature') and args.temperature is not None:
             config.temperature = args.temperature
@@ -257,12 +245,13 @@ class GraphitiLLMConfig(BaseModel):
 
         llm_client_config = LLMConfig(
             api_key=self.api_key,
-            base_url=self.base_url,  # 添加 base_url 支持
+            base_url=self.base_url,  # Added support for base_url
             model=self.model,
             small_model=self.small_model
         )
         llm_client_config.temperature = self.temperature
 
+        # Use the compatible client
         # 使用兼容客户端
         return OpenAICompatClient(config=llm_client_config)
 
@@ -273,14 +262,9 @@ class GraphitiEmbedderConfig(BaseModel):
     Centralizes all embedding-related configuration parameters.
     """
 
-    model: str  # 必须配置，无默认值
+    model: str  # Must be configured, no default value
     api_key: str | None = None
-    base_url: str | None = None  # 新增 base_url 支持
-    # 移除 Azure 相关字段
-    # azure_openai_endpoint: str | None = None
-    # azure_openai_deployment_name: str | None = None
-    # azure_openai_api_version: str | None = None
-    # azure_openai_use_managed_identity: bool = False
+    base_url: str | None = None  # Added support for base_url
 
     @classmethod
     def from_env(cls) -> 'GraphitiEmbedderConfig':
@@ -295,9 +279,6 @@ class GraphitiEmbedderConfig(BaseModel):
             raise ValueError('EMBEDDING_BASE_URL environment variable must be set')
 
         api_key = os.environ.get('EMBEDDING_API_KEY')
-        # api_key 是可选的，本地模型可以为空
-
-        logger.info(f'Embedding configuration loaded: model={model}, base_url={base_url}')
 
         return cls(
             model=model,
@@ -306,9 +287,10 @@ class GraphitiEmbedderConfig(BaseModel):
         )
 
     def create_client(self) -> EmbedderClient | None:
+        # Support for local embedding models (no API key required)
         # 支持本地 embedding 模型（无需 API key）
         embedder_config = OpenAIEmbedderConfig(
-            api_key=self.api_key or "dummy",  # 本地模型可以使用 dummy key
+            api_key=self.api_key or "dummy",
             base_url=self.base_url,
             embedding_model=self.model
         )
@@ -380,11 +362,13 @@ class MCPConfig(BaseModel):
     """Configuration for MCP server."""
 
     transport: str = 'sse'  # Default to SSE transport
+    port: int = int(os.environ.get('PORT', '8000'))  # Default port from PORT env var or 8000
 
     @classmethod
     def from_cli(cls, args: argparse.Namespace) -> 'MCPConfig':
         """Create MCP configuration from CLI arguments."""
-        return cls(transport=args.transport)
+        port = getattr(args, 'port', int(os.environ.get('PORT', '8000')))
+        return cls(transport=args.transport, port=port)
 
 
 # Configure logging
@@ -465,9 +449,6 @@ async def initialize_graphiti():
         # 调试：检查embedder_client是否为None
         if embedder_client is None:
             logger.error("❌ Embedder client is None! This will cause embedding to be skipped.")
-        else:
-            logger.info(f"✅ Embedder client created successfully: {type(embedder_client)}")
-            logger.info(f"✅ Embedder config: model={config.embedder.model}, base_url={config.embedder.base_url}")
 
         # 创建兼容版本的 cross_encoder
         cross_encoder_client = OpenAICompatRerankerClient()
@@ -485,37 +466,37 @@ async def initialize_graphiti():
 
         # Destroy graph if requested
         if config.destroy_graph:
-            logger.info('Destroying graph...')
+            logger.info('⚠️ Destroying graph...')
             await clear_data(graphiti_client.driver)
 
         # Initialize the graph database with Graphiti's indices
         await graphiti_client.build_indices_and_constraints()
-        logger.info('Graphiti client initialized successfully')
+        logger.info('✅ Graphiti client initialized successfully')
 
         # Log configuration details for transparency
         if llm_client:
-            logger.info(f'Using LLM model: {config.llm.model}')
-            logger.info(f'Using LLM base URL: {config.llm.base_url}')
-            logger.info(f'Using temperature: {config.llm.temperature}')
+            logger.info(f'💡 Using LLM model: {config.llm.model}')
+            logger.info(f'💡 Using LLM base URL: {config.llm.base_url}')
+            logger.info(f'💡 Using temperature: {config.llm.temperature}')
             if config.llm.small_model:
-                logger.info(f'Using small model: {config.llm.small_model}')
+                logger.info(f'💡 Using small model: {config.llm.small_model}')
         else:
-            logger.info('No LLM client configured - entity extraction will be limited')
+            logger.warning('⚠️ No LLM client configured - entity extraction will be limited')
 
         if embedder_client:
-            logger.info(f'Using embedding model: {config.embedder.model}')
-            logger.info(f'Using embedding base URL: {config.embedder.base_url}')
+            logger.info(f'💡 Using embedding model: {config.embedder.model}')
+            logger.info(f'💡 Using embedding base URL: {config.embedder.base_url}')
         else:
-            logger.info('No embedder client configured')
+            logger.warning('⚠️ No embedder client configured')
 
-        logger.info(f'Using group_id: {config.group_id}')
+        logger.info(f'💡 Using group_id: {config.group_id}')
         logger.info(
-            f'Custom entity extraction: {"enabled" if config.use_custom_entities else "disabled"}'
+            f'💡 Custom entity extraction: {"enabled" if config.use_custom_entities else "disabled"}'
         )
-        logger.info(f'Using concurrency limit: {SEMAPHORE_LIMIT}')
+        logger.info(f'💡 Using concurrency limit: {SEMAPHORE_LIMIT}')
 
     except Exception as e:
-        logger.error(f'Failed to initialize Graphiti: {str(e)}')
+        logger.error(f'❌ Failed to initialize Graphiti: {str(e)}')
         raise
 
 
@@ -555,7 +536,7 @@ async def process_episode_queue(group_id: str):
     """
     global queue_workers
 
-    logger.info(f'Starting episode queue worker for group_id: {group_id}')
+    logger.info(f'⏳ Starting episode queue worker for group_id: {group_id}')
     queue_workers[group_id] = True
 
     try:
@@ -568,17 +549,17 @@ async def process_episode_queue(group_id: str):
                 # Process the episode
                 await process_func()
             except Exception as e:
-                logger.error(f'Error processing queued episode for group_id {group_id}: {str(e)}')
+                logger.error(f'❌ Error processing queued episode for group_id {group_id}: {str(e)}')
             finally:
                 # Mark the task as done regardless of success/failure
                 episode_queues[group_id].task_done()
     except asyncio.CancelledError:
-        logger.info(f'Episode queue worker for group_id {group_id} was cancelled')
+        logger.info(f'⚠️ Episode queue worker for group_id {group_id} was cancelled')
     except Exception as e:
-        logger.error(f'Unexpected error in queue worker for group_id {group_id}: {str(e)}')
+        logger.error(f'❌ Unexpected error in queue worker for group_id {group_id}: {str(e)}')
     finally:
         queue_workers[group_id] = False
-        logger.info(f'Stopped episode queue worker for group_id: {group_id}')
+        logger.info(f'⚠️ Stopped episode queue worker for group_id: {group_id}')
 
 
 @mcp.tool()
@@ -675,7 +656,7 @@ async def add_memory(
         # Define the episode processing function
         async def process_episode():
             try:
-                logger.info(f"Processing queued episode '{name}' for group_id: {group_id_str}")
+                logger.info(f"⏳ Processing queued episode '{name}' for group_id: {group_id_str}")
                 # Use all entity types if use_custom_entities is enabled, otherwise use empty dict
                 entity_types = ENTITY_TYPES if config.use_custom_entities else {}
 
@@ -689,13 +670,13 @@ async def add_memory(
                     reference_time=datetime.now(timezone.utc),
                     entity_types=entity_types,
                 )
-                logger.info(f"Episode '{name}' added successfully")
+                logger.info(f"✅ Episode '{name}' added successfully")
 
-                logger.info(f"Episode '{name}' processed successfully")
+                logger.info(f"✅ Episode '{name}' processed successfully")
             except Exception as e:
                 error_msg = str(e)
                 logger.error(
-                    f"Error processing episode '{name}' for group_id {group_id_str}: {error_msg}"
+                    f"❌ Error processing episode '{name}' for group_id {group_id_str}: {error_msg}"
                 )
 
         # Initialize queue for this group_id if it doesn't exist
@@ -715,7 +696,7 @@ async def add_memory(
         )
     except Exception as e:
         error_msg = str(e)
-        logger.error(f'Error queuing episode task: {error_msg}')
+        logger.error(f'❌ Error queuing episode task: {error_msg}')
         return ErrorResponse(error=f'Error queuing episode task: {error_msg}')
 
 
@@ -796,7 +777,7 @@ async def search_memory_nodes(
         return NodeSearchResponse(message='Nodes retrieved successfully', nodes=formatted_nodes)
     except Exception as e:
         error_msg = str(e)
-        logger.error(f'Error searching nodes: {error_msg}')
+        logger.error(f'❌ Error searching nodes: {error_msg}')
         return ErrorResponse(error=f'Error searching nodes: {error_msg}')
 
 
@@ -850,7 +831,7 @@ async def search_memory_facts(
         return FactSearchResponse(message='Facts retrieved successfully', facts=facts)
     except Exception as e:
         error_msg = str(e)
-        logger.error(f'Error searching facts: {error_msg}')
+        logger.error(f'❌ Error searching facts: {error_msg}')
         return ErrorResponse(error=f'Error searching facts: {error_msg}')
 
 
@@ -880,7 +861,7 @@ async def delete_entity_edge(uuid: str) -> SuccessResponse | ErrorResponse:
         return SuccessResponse(message=f'Entity edge with UUID {uuid} deleted successfully')
     except Exception as e:
         error_msg = str(e)
-        logger.error(f'Error deleting entity edge: {error_msg}')
+        logger.error(f'❌ Error deleting entity edge: {error_msg}')
         return ErrorResponse(error=f'Error deleting entity edge: {error_msg}')
 
 
@@ -907,10 +888,10 @@ async def delete_episode(uuid: str) -> SuccessResponse | ErrorResponse:
         episodic_node = await EpisodicNode.get_by_uuid(client.driver, uuid)
         # Delete the node using its delete method
         await episodic_node.delete(client.driver)
-        return SuccessResponse(message=f'Episode with UUID {uuid} deleted successfully')
+        return SuccessResponse(message=f'✅ Episode with UUID {uuid} deleted successfully')
     except Exception as e:
         error_msg = str(e)
-        logger.error(f'Error deleting episode: {error_msg}')
+        logger.error(f'❌ Error deleting episode: {error_msg}')
         return ErrorResponse(error=f'Error deleting episode: {error_msg}')
 
 
@@ -941,7 +922,7 @@ async def get_entity_edge(uuid: str) -> dict[str, Any] | ErrorResponse:
         return format_fact_result(entity_edge)
     except Exception as e:
         error_msg = str(e)
-        logger.error(f'Error getting entity edge: {error_msg}')
+        logger.error(f'❌ Error getting entity edge: {error_msg}')
         return ErrorResponse(error=f'Error getting entity edge: {error_msg}')
 
 
@@ -993,7 +974,7 @@ async def get_episodes(
         return formatted_episodes
     except Exception as e:
         error_msg = str(e)
-        logger.error(f'Error getting episodes: {error_msg}')
+        logger.error(f'❌ Error getting episodes: {error_msg}')
         return ErrorResponse(error=f'Error getting episodes: {error_msg}')
 
 
@@ -1015,10 +996,10 @@ async def clear_graph() -> SuccessResponse | ErrorResponse:
         # clear_data is already imported at the top
         await clear_data(client.driver)
         await client.build_indices_and_constraints()
-        return SuccessResponse(message='Graph cleared successfully and indices rebuilt')
+        return SuccessResponse(message='✅ Graph cleared successfully and indices rebuilt')
     except Exception as e:
         error_msg = str(e)
-        logger.error(f'Error clearing graph: {error_msg}')
+        logger.error(f'❌ Error clearing graph: {error_msg}')
         return ErrorResponse(error=f'Error clearing graph: {error_msg}')
 
 
@@ -1041,14 +1022,14 @@ async def get_status() -> StatusResponse:
         await client.driver.client.verify_connectivity()  # type: ignore
 
         return StatusResponse(
-            status='ok', message='Graphiti MCP server is running and connected to Neo4j'
+            status='ok', message='✅ Graphiti MCP server is running and connected to Neo4j'
         )
     except Exception as e:
         error_msg = str(e)
-        logger.error(f'Error checking Neo4j connection: {error_msg}')
+        logger.error(f'❌ Error checking Neo4j connection: {error_msg}')
         return StatusResponse(
             status='error',
-            message=f'Graphiti MCP server is running but Neo4j connection failed: {error_msg}',
+            message=f'❌ Graphiti MCP server is running but Neo4j connection failed: {error_msg}',
         )
 
 
@@ -1093,6 +1074,12 @@ async def initialize_server() -> MCPConfig:
         default=os.environ.get('MCP_SERVER_HOST'),
         help='Host to bind the MCP server to (default: MCP_SERVER_HOST environment variable)',
     )
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=int(os.environ.get('PORT', '8000')),
+        help='Port to bind the MCP server to (default: PORT environment variable or 8000)',
+    )
 
     args = parser.parse_args()
 
@@ -1101,26 +1088,34 @@ async def initialize_server() -> MCPConfig:
 
     # Log the group ID configuration
     if args.group_id:
-        logger.info(f'Using provided group_id: {config.group_id}')
+        logger.info(f'🔢 Using provided group_id: {config.group_id}')
     else:
-        logger.info(f'Generated random group_id: {config.group_id}')
+        logger.info(f'🔢 Generated random group_id: {config.group_id}')
 
     # Log entity extraction configuration
     if config.use_custom_entities:
-        logger.info('Entity extraction enabled using predefined ENTITY_TYPES')
+        logger.info('✅ Entity extraction enabled using predefined ENTITY_TYPES')
     else:
-        logger.info('Entity extraction disabled (no custom entities will be used)')
+        logger.info('⚠️ Entity extraction disabled (no custom entities will be used)')
 
     # Initialize Graphiti
     await initialize_graphiti()
 
     if args.host:
-        logger.info(f'Setting MCP server host to: {args.host}')
+        logger.info(f'🛠️ Setting MCP server host to: {args.host}')
         # Set MCP server host from CLI or env
         mcp.settings.host = args.host
 
+    # Create MCP configuration to get port setting
+    mcp_config = MCPConfig.from_cli(args)
+
+    # Set MCP server port from CLI, env var, or default
+    if mcp_config.port != 8000:  # Only log if not using default port
+        logger.info(f'🛠️ Setting MCP server port to: {mcp_config.port}')
+    mcp.settings.port = mcp_config.port
+
     # Return MCP configuration
-    return MCPConfig.from_cli(args)
+    return mcp_config
 
 
 async def run_mcp_server():
@@ -1129,12 +1124,13 @@ async def run_mcp_server():
     mcp_config = await initialize_server()
 
     # Run the server with stdio transport for MCP in the same event loop
-    logger.info(f'Starting MCP server with transport: {mcp_config.transport}')
+    logger.info(f'🚀 Starting MCP server with transport: {mcp_config.transport}')
     if mcp_config.transport == 'stdio':
         await mcp.run_stdio_async()
+        logger.info(f'✅ MCP server started with stdio transport on {mcp.settings.host}:{mcp.settings.port}')
     elif mcp_config.transport == 'sse':
         logger.info(
-            f'Running MCP server with SSE transport on {mcp.settings.host}:{mcp.settings.port}'
+            f'✅ Running MCP server with SSE transport on {mcp.settings.host}:{mcp.settings.port}'
         )
         await mcp.run_sse_async()
 
@@ -1145,7 +1141,7 @@ def main():
         # Run everything in a single event loop
         asyncio.run(run_mcp_server())
     except Exception as e:
-        logger.error(f'Error initializing Graphiti MCP server: {str(e)}')
+        logger.error(f'❌ Error initializing Graphiti MCP server: {str(e)}')
         raise
 
 

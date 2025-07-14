@@ -10,5 +10,6 @@ dependencies = [
     "instructor>=1.9.2",
 ]
 
+# Add the local graphiti-core package as a source from the project root
 [tool.uv.sources]
 graphiti-core = { path = "./" }

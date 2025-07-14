@@ -18,9 +18,6 @@ from .client import CrossEncoderClient
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = 'gpt-4.1-nano'
-
-
 class OpenAICompatRerankerClient(CrossEncoderClient):
     def __init__(self, config: LLMConfig | None = None):
         """
@@ -34,7 +31,7 @@ class OpenAICompatRerankerClient(CrossEncoderClient):
             config = LLMConfig(
                 api_key=os.environ.get('LLM_API_KEY'),
                 base_url=os.environ.get('LLM_BASE_URL'),
-                model=os.environ.get('LLM_MODEL_NAME', DEFAULT_MODEL),
+                model=os.environ.get('LLM_MODEL_NAME'),
             )
 
         self.config = config
@@ -71,7 +68,7 @@ class OpenAICompatRerankerClient(CrossEncoderClient):
             responses = await semaphore_gather(
                 *[
                     self.client.chat.completions.create(
-                        model=self.config.model or DEFAULT_MODEL,
+                        model=self.config.model,
                         messages=openai_messages,
                         temperature=0,
                         max_tokens=1,

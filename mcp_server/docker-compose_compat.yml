@@ -1,5 +1,5 @@
 networks:
-  graphiti-compat-mcp_network:
+  graphiti-mcp-compat_network:
 
 services:
   neo4j:
@@ -22,14 +22,14 @@ services:
       retries: 5
       start_period: 30s
     networks:
-      - graphiti-compat-mcp_network
+      - graphiti-mcp-compat_network
 
   # 修改服务名
-  graphiti-mcp-openai-compat:
+  graphiti-mcp-compat:
     # 修改构建配置
     build:
       context: ../ # 指向项目根目录以包含 graphiti_core
-      dockerfile: mcp_server/openai_compat.Dockerfile
+      dockerfile: mcp_server/compat.Dockerfile
     env_file:
       - path: .env
         required: false # Makes the file optional. Default value is 'true'
@@ -54,11 +54,11 @@ services:
       - PATH=/root/.local/bin:${PATH}
       - SEMAPHORE_LIMIT=${SEMAPHORE_LIMIT:-10}
     networks:
-      - graphiti-compat-mcp_network
+      - graphiti-mcp-compat_network
     ports:
       - '8000:8000' # Expose the MCP server via HTTP for SSE transport
     # 修改启动命令
-    command: ['uv', 'run', 'graphiti_mcp_server-openai_compat.py', '--transport', 'sse']
+    command: ['uv', 'run', 'graphiti_mcp_server-compat.py', '--transport', 'sse']
 
 volumes:
   neo4j_compat_data:

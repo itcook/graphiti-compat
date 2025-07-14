@@ -55,10 +55,11 @@ check_env_var "EMBEDDING_MODEL_NAME"
 echo "✅ All required environment variables are set"
 
 # Start services
-echo "⏳ Starting Graphiti MCP OpenAI Compatible version..."
-docker compose -f docker-compose_openai_compat.yml up -d
+echo "🚀 Starting Graphiti MCP OpenAI Compatible version..."
+docker compose -f docker-compose_compat.yml up -d
 
 echo "✅ Services started successfully!"
-echo "ℹ️ MCP Server: http://localhost:8000"
-echo "ℹ️ Neo4j Browser: http://localhost:7474"
-echo "ℹ️ Use 'docker compose -f docker-compose_openai_compat.yml logs -f' to view logs"
+echo "✨ MCP Server: http://localhost:8000"
+echo "✨ Neo4j Browser: http://localhost:7474"
+echo "✨ Use 'docker compose -f docker-compose_compat.yml logs -f' to view logs"
+echo "✨ Use 'docker compose down' to stop services"

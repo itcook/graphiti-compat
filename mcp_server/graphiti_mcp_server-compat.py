@@ -41,12 +41,6 @@ from graphiti_core.utils.maintenance.graph_data_operations import clear_data
 
 load_dotenv()
 
-
-# 移除默认值，要求必须配置环境变量
-# DEFAULT_LLM_MODEL = 'deepseek-chat'
-# SMALL_LLM_MODEL = 'gpt-4.1-nano'
-# DEFAULT_EMBEDDER_MODEL = 'text-embedding-3-small'
-
 # Semaphore limit for concurrent Graphiti operations.
 # Decrease this if you're experiencing 429 rate limit errors from your LLM provider.
 # Increase if you have high rate limits.
@@ -171,16 +165,6 @@ class StatusResponse(TypedDict):
     status: str
     message: str
 
-
-# 移除 Azure 相关函数
-# def create_azure_credential_token_provider() -> Callable[[], str]:
-#     credential = DefaultAzureCredential()
-#     token_provider = get_bearer_token_provider(
-#         credential, 'https://cognitiveservices.azure.com/.default'
-#     )
-#     return token_provider
-
-
 # Server configuration classes
 # The configuration system has a hierarchy:
 # - GraphitiConfig is the top-level configuration
@@ -268,7 +252,6 @@ class GraphitiLLMConfig(BaseModel):
     def create_client(self) -> LLMClient:
         """Create an LLM client based on this configuration."""
 
-        # 移除所有 Azure 相关逻辑
         if not self.api_key:
             raise ValueError('LLM_API_KEY must be set when using OpenAI API')
 
@@ -323,8 +306,6 @@ class GraphitiEmbedderConfig(BaseModel):
         )
 
     def create_client(self) -> EmbedderClient | None:
-        # 移除所有 Azure 相关逻辑
-
         # 支持本地 embedding 模型（无需 API key）
         embedder_config = OpenAIEmbedderConfig(
             api_key=self.api_key or "dummy",  # 本地模型可以使用 dummy key
@@ -473,7 +454,7 @@ async def initialize_graphiti():
         llm_client = config.llm.create_client()
         if not llm_client and config.use_custom_entities:
             # If custom entities are enabled, we must have an LLM client
-            raise ValueError('OPENAI_API_KEY must be set when custom entities are enabled')
+            raise ValueError('LLM_BASE_URL and LLM_API_KEY must be set when custom entities are enabled')
 
         # Validate Neo4j configuration
         if not config.neo4j.uri or not config.neo4j.user or not config.neo4j.password:

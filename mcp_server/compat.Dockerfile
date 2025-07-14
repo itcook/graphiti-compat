@@ -26,8 +26,8 @@ ENV UV_COMPILE_BYTECODE=1 \
 # Create non-root user
 RUN groupadd -r app && useradd -r -d /app -g app app
 
-# 修改构建上下文，从上级目录复制以包含 graphiti_core
-COPY mcp_server/pyproject-openai_compat.toml ./pyproject.toml
+# Modify the build context to copy from the parent directory to include graphiti_core
+COPY mcp_server/pyproject-compat.toml ./pyproject.toml
 COPY mcp_server/uv.lock ./
 COPY graphiti_core/ ./graphiti_core/
 
@@ -35,8 +35,8 @@ COPY graphiti_core/ ./graphiti_core/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-# 修改应用程序文件名
-COPY mcp_server/graphiti_mcp_server-openai_compat.py ./
+# Modify the application file name
+COPY mcp_server/graphiti_mcp_server-compat.py ./
 
 # Change ownership to app user
 RUN chown -Rv app:app /app
@@ -47,5 +47,5 @@ USER app
 # Expose port
 EXPOSE 8000
 
-# 修改启动命令
-CMD ["uv", "run", "graphiti_mcp_server-openai_compat.py"]
+# Modify startup command
+CMD ["uv", "run", "graphiti_mcp_server-compat.py"]

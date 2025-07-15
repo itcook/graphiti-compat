@@ -68,6 +68,7 @@ class OpenAICompatClient(LLMClient):
         messages: list[Message],
         response_model: type[BaseModel] | None = None,
         max_tokens: int = DEFAULT_MAX_TOKENS,
+        model_size: ModelSize = ModelSize.medium,
     ) -> dict[str, typing.Any]:
         """Generate structured response using instructor"""
         try:
@@ -140,6 +141,7 @@ class OpenAICompatClient(LLMClient):
         messages: list[Message],
         response_model: type[BaseModel] | None = None,
         max_tokens: int | None = None,
+        model_size: ModelSize = ModelSize.medium,
     ) -> dict[str, typing.Any]:
         """Public interface for generating responses"""
         if max_tokens is None:
@@ -147,5 +149,5 @@ class OpenAICompatClient(LLMClient):
 
         # Directly call _generate_response, instructor has built-in retry mechanism
         return await self._generate_response(
-            messages, response_model, max_tokens
+            messages, response_model, max_tokens, model_size
         )

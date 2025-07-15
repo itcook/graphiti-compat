@@ -6,10 +6,17 @@ readme = "README.md"
 requires-python = ">=3.10,<4"
 dependencies = [
     "mcp>=1.5.0",
-    "openai>=1.68.2",
+    "neo4j>=5.26.0",
+    "openai>=1.91.0",
     "instructor>=1.9.2",
+    "diskcache>=5.6.3",
+    "numpy>=1.0.0",
+    "posthog>=3.0.0",
+    "pydantic>=2.11.5",
+    "python-dotenv>=1.0.1",
+    "tenacity>=9.0.0",
 ]
 
 # Add the local graphiti-core package as a source from the project root
 [tool.uv.sources]
-graphiti-core = { path = "./" }
+graphiti-core = { path = "../../" }

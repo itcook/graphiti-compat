@@ -1,5 +1,7 @@
+name: graphiti-compat
+
 networks:
-  graphiti-mcp-compat_network:
+  graphiti:
 
 services:
   neo4j:
@@ -13,8 +15,8 @@ services:
       - NEO4J_server_memory_heap_max__size=1G
       - NEO4J_server_memory_pagecache_size=512m
     volumes:
-      - neo4j_compat_data:/data
-      - neo4j_compat_logs:/logs
+      - neo4j_data:/data
+      - neo4j_logs:/logs
     healthcheck:
       test: ['CMD', 'wget', '-O', '/dev/null', 'http://localhost:7474']
       interval: 10s
@@ -22,12 +24,12 @@ services:
       retries: 5
       start_period: 30s
     networks:
-      - graphiti-mcp-compat_network
+      - graphiti
 
-  graphiti-mcp-compat:
+  mcp-server:
     build:
-      context: ../ # Point to the project root to include graphiti_core
-      dockerfile: mcp_server/compat.Dockerfile
+      context: ../../ # Point to the project root to include graphiti_core
+      dockerfile: mcp_server/compat/Dockerfile
     env_file:
       - path: .env
         required: false # Makes the file optional. Default value is 'true'
@@ -49,11 +51,11 @@ services:
       - PATH=/root/.local/bin:${PATH}
       - SEMAPHORE_LIMIT=${SEMAPHORE_LIMIT:-10}
     networks:
-      - graphiti-mcp-compat_network
+      - graphiti
     ports:
       - '${PORT:-8000}:${PORT:-8000}'
-    command: ['uv', 'run', 'graphiti_mcp_server-compat.py', '--transport', 'sse']
+    command: ['uv', 'run', 'graphiti_mcp_server.py', '--transport', 'sse']
 
 volumes:
-  neo4j_compat_data:
-  neo4j_compat_logs:
+  neo4j_data:
+  neo4j_logs:

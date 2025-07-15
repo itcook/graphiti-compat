@@ -16,7 +16,7 @@ This branch contains an enhanced OpenAI-compatible version of [Graphiti](https:/
 
 For detailed installation and usage instructions, please refer to the comprehensive documentation:
 
-📖 **[Compatible-MCPServer Documentation](mcp_server/README.md)**
+📖 **[Compatible-MCPServer Documentation](mcp_server/compat/README.md)**
 
 ### Quick Start
 
@@ -27,7 +27,8 @@ cd graphiti/mcp_server
 git checkout compat
 
 # Configure and start
-cp .env.compat.example .env
+cd compat
+cp .env.example .env
 # Edit .env with your API keys and model configurations
 chmod +x startup.sh
 ./startup.sh
@@ -58,7 +59,7 @@ For the official Graphiti project with full GPT/Gemini/Claude and Azure OpenAI s
 
 详细的安装和使用说明，请参考完整文档：
 
-📖 **[兼容型 MCP Server 文档](mcp_server/README_CN.md)**
+📖 **[兼容型 MCP Server 文档](mcp_server/compat/README_CN.md)**
 
 ### 快速开始
 
@@ -69,7 +70,8 @@ cd graphiti/mcp_server
 git checkout compat
 
 # 配置和启动
-cp .env.compat.example .env
+cd compat
+cp .env.example .env
 # 使用您的 API 密钥和模型配置编辑 .env
 chmod +x startup.sh
 ./startup.sh

@@ -27,25 +27,12 @@ ENV UV_COMPILE_BYTECODE=1 \
 RUN groupadd -r app && useradd -r -d /app -g app app
 
 # Modify the build context to copy from the parent directory to include graphiti_core
-COPY mcp_server/pyproject-compat.toml ./pyproject.toml
-COPY mcp_server/uv.lock ./
+COPY mcp_server/compat/pyproject.toml ./pyproject.toml
+COPY mcp_server/compat/uv.lock ./
 COPY graphiti_core/ ./graphiti_core/
 
-# Install dependencies first (better layer caching)
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
-
 # Modify the application file name
-COPY mcp_server/graphiti_mcp_server-compat.py ./
-
-# Change ownership to app user
-RUN chown -Rv app:app /app
-
-# Switch to non-root user
-USER app
-
-# Expose port
-EXPOSE 8000
+COPY mcp_server/compat/graphiti_mcp_server.py ./
 
 # Modify startup command
-CMD ["uv", "run", "graphiti_mcp_server-compat.py"]
+CMD ["uv", "run", "graphiti_mcp_server.py"]

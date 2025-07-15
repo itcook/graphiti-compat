@@ -4,13 +4,15 @@
 
 > ⚠️ **重要提示**: 此 OpenAI 兼容版本尚未经过充分测试，请谨慎使用。
 
-Graphiti 是一个专为在动态环境中运行的 AI 代理构建和查询时间感知知识图谱的框架，由于其特性，它特别适合作为 AI Coding Agent 的记忆库。这是 Graphiti MCP 服务器实现的增强 OpenAI 兼容版本，旨在支持更广泛的 LLM (OpenAI API like)和本地 embedding。
+这是 Graphiti MCP 服务器实现的增强 OpenAI 兼容版本，旨在支持更广泛的 LLM (OpenAI API like)和本地文本嵌入服务。Graphiti 是一个专为在动态环境中运行的 AI 代理构建和查询时间感知知识图谱的框架，由于其特性，它特别适合作为 AI Coding Agent 的 MCP 记忆库。
 
 ## 兼容版本的新特性
 
 此分支 (`compat`) 引入了重要的增强功能，以支持除官方实现的 GPT/Gemini/Claude 和 Azure OpenAI(AI 云服务)模型之外的 OpenAI API 兼容 LLM 提供商。
 
-### 新增文件（除说明文档外未改动任何上游文件）
+### 新增文件
+
+> 为了方便与上游仓库同步，除项目 README.md 文档外，所有的文件均为新增
 
 **核心兼容性客户端：**
 
@@ -19,12 +21,12 @@ Graphiti 是一个专为在动态环境中运行的 AI 代理构建和查询时�
 
 **MCP 服务器组件：**
 
-- **`mcp_server/graphiti_mcp_server-compat.py`** - 具有 OpenAI API 兼容性的增强 MCP 服务器
-- **`mcp_server/compat.Dockerfile`** - 兼容版本的 Docker 配置
-- **`mcp_server/docker-compose_compat.yml`** - 兼容版本的 Docker Compose 设置
-- **`mcp_server/pyproject-compat.toml`** - 包含 instructor 库的更新依赖项，以及使用本地 `graphiti-core` 包的项目配置
-- **`mcp_server/.env.compat.example`** - 兼容版本的环境配置模板
-- **`mcp_server/startup.sh`** - 具有环境验证和服务管理功能的便捷启动脚本
+- **`mcp_server/compat/graphiti_mcp_server.py`** - 具有 OpenAI API 兼容性的增强 MCP 服务器
+- **`mcp_server/compat/Dockerfile`** - 兼容版本的 Docker 配置
+- **`mcp_server/compat/docker-compose.yml`** - 兼容版本的 Docker Compose 设置
+- **`mcp_server/compat/pyproject.toml`** - 包含 instructor 库的更新依赖项，以及使用本地 `graphiti-core` 包的依赖配置
+- **`mcp_server/compat/.env.example`** - 兼容版本的环境配置模板
+- **`mcp_server/compat/startup.sh`** - 具有环境验证和服务管理功能的便捷启动脚本
 
 ### 核心改进
 
@@ -53,52 +55,54 @@ Graphiti 是一个专为在动态环境中运行的 AI 代理构建和查询时�
 
 ### Docker 运行（推荐）
 
-1. **克隆仓库并导航到 mcp_server 目录**
+1. **克隆仓库并切换到 compat 分支**
 
    ```bash
    git clone https://github.com/itcook/graphiti.git
-   cd graphiti/mcp_server
+   cd graphiti
+   git checkout compat
    ```
 
-2. **切换分支**
+2. **配置环境变量**
 
    ```bash
-   git checkout compact
-   ```
-
-3. **配置环境变量**
-
-   ```bash
-   cp .env.compat.example .env
+   cd mcp_server/compat
+   cp .env.example .env
    # 使用您的 API 密钥和模型配置编辑 .env 文件
    ```
 
-4. **使用启动脚本启动兼容版本（推荐）**
+3. **使用启动脚本启动兼容版本（推荐）**
 
    ```bash
    chmod +x startup.sh
    ./startup.sh
+
+   # 如果您需要重新构建 Docker 镜像（如版本更新后）
+   # ./startup.sh -r
+   # 或者
+   # ./startup.sh --rebuild
    ```
 
    **启动脚本提供以下功能：**
 
    - 环境变量验证（优先检查 .env 文件，然后检查系统环境）
-   - API 密钥安全掩码（显示前 3 位和后 4 位字符）
    - 自动 Docker Compose 服务编排
    - 服务状态报告，包含 URL 和管理命令
 
    或手动使用 Docker Compose：
 
    ```bash
-   docker compose -f docker-compose_compat.yml up -d
+   docker compose up -d
    ```
 
-5. **访问服务器**
+4. **访问服务器**
    - SSE 端点: `http://localhost:8000/sse`
    - Neo4j 浏览器: `http://localhost:7474`
    - 默认端口可通过 `PORT` 环境变量更改
 
 ### 非 Docker 运行
+
+> 均需在 `graphiti/mcp_server/compat` 目录下操作
 
 1. **先决条件**
 
@@ -107,14 +111,7 @@ Graphiti 是一个专为在动态环境中运行的 AI 代理构建和查询时�
    - OpenAI API 兼容的 LLM 服务
    - `uv` 包管理器
 
-2. **覆写项目依赖文件**
-
-   ```bash
-   cp pyproject.toml pyproject.toml.bak
-   cp pyproject-compat.toml pyproject.toml
-   ```
-
-3. **安装依赖项**
+2. **安装依赖项**
 
    ```bash
    # 如果尚未安装 uv，请安装
@@ -126,16 +123,16 @@ Graphiti 是一个专为在动态环境中运行的 AI 代理构建和查询时�
    uv sync
    ```
 
-4. **配置环境**
+3. **配置环境**
 
    ```bash
-   cp .env.compat.example .env
+   cp .env.example .env
    # 使用您的配置编辑 .env
    ```
 
-5. **运行服务器**
+4. **运行服务器**
    ```bash
-   uv run graphiti_mcp_server-compat.py --transport sse
+   uv run graphiti_mcp_server.py --transport sse
    ```
 
 ## 配置
@@ -184,6 +181,7 @@ PORT=8000                              # 服务器端口
 {
   "mcpServers": {
     "graphiti-memory": {
+      "type": "sse",
       "url": "http://localhost:8000/sse"
     }
   }
